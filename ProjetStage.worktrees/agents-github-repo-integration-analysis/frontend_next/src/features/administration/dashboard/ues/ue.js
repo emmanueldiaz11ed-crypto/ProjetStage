@@ -1,0 +1,420 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import FiliereService from "@/services/filiereService";
+import ParcoursService from "@/services/parcoursService";
+import AnneeEtudeService from "@/services/anneeEtudeService";
+import SemestreService from "@/services/semestreService";
+import { FaClipboardList, FaSort, FaSortUp, FaSortDown, FaPlus, FaTimes, FaEdit, FaTrash } from "react-icons/fa";
+import UEService from "@/services/ueService";
+import UEForm from "./ueForm";
+import ModifUE from "./modifUE";
+import ImportUEExcel from "./importExcel";
+
+export default function GestionUEs(filiereOptions, parcoursOptions, anneeOptions, semestreOptions, anneesEtudeOptions, showFormOptions) {
+  const [filieres, setFilieres] = useState([]);
+  const [parcours, setParcours] = useState([]);
+  const [anneesEtude, setAnneesEtude] = useState([]);
+  const [semestres, setSemestres] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [selectedFiliere, setSelectedFiliere] = useState("");
+  const [selectedParcours, setSelectedParcours] = useState("");
+  const [selectedAnneeEtude, setSelectedAnneeEtude] = useState("");
+  const [selectedSemestre, setSelectedSemestre] = useState("");
+  const [selectedFiliereObject, setSelectedFiliereObject] = useState(null);
+  const [selectedParcoursObject, setSelectedParcoursObject] = useState("");
+  const [selectedAnneeEtudeObject, setSelectedAnneeEtudeObject] = useState("");
+  const [selectedSemestreObject, setSelectedSemestreObject] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  const [selectedUeId, setSelectedUeId] = useState(null);
+
+  // États pour les formulaires
+  const [showForm, setShowForm] = useState(false);
+  const [showModifForm, setShowModifForm] = useState(false);
+  const [ueToModify, setUeToModify] = useState(null);
+
+  const router = useRouter();
+
+  // Récupération des données
+  useEffect(() => {
+    FiliereService.getFilieres()
+      .then((data) => setFilieres(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    ParcoursService.getParcours()
+      .then((data) => setParcours(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    AnneeEtudeService.getAnneesEtude()
+      .then((data) => setAnneesEtude(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    SemestreService.getSemestres()
+      .then((data) => setSemestres(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    UEService.getAllUE()
+      .then((data) => setCourses(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  // Gestion du tri
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <FaSort className="ml-1 text-gray-400" />;
+    return sortConfig.direction === 'ascending' 
+      ? <FaSortUp className="ml-1 text-blue-600" /> 
+      : <FaSortDown className="ml-1 text-blue-600" />;
+  };
+
+  const trouverObjetParId = (array, id) => {
+    const objet = array.find(f => f.id === parseInt(id));
+    return objet;
+  };
+
+  // Gestion de la modification
+  const handleModify = (course) => {
+    setUeToModify(course);
+    setShowModifForm(true);
+  };
+
+  // Gestion de la suppression
+  const handleDelete = async (courseId) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette UE ?")) {
+      try {
+        await UEService.deleteUE(courseId);
+        setCourses(prev => prev.filter(c => c.id !== courseId));
+        console.log("UE supprimée avec succès");
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert("Erreur lors de la suppression de l'UE");
+      }
+    }
+  };
+
+  // Filtres
+  const filteredCourses = courses?.filter((c) => {
+    const filiereOk =
+      !selectedFiliere ||
+      trouverObjetParId(filieres, c.filiere)?.abbreviation === selectedFiliere;
+
+    const parcoursOk =
+      !selectedParcours ||
+      trouverObjetParId(parcours, c.parcours)?.libelle === selectedParcours;
+
+    const semestreOk =
+      !selectedSemestre || trouverObjetParId(semestres, c.semestre)?.libelle === selectedSemestre;
+
+    const anneeOk =
+      !selectedAnneeEtude || trouverObjetParId(anneesEtude, c.annee_etude)?.libelle === selectedAnneeEtude;
+
+    return filiereOk && parcoursOk && semestreOk && anneeOk;
+  });
+
+  const sortedCourses = [...(filteredCourses || [])].sort((a, b) => {
+    if (sortConfig.key) {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+    }
+    return 0;
+  });
+
+  return (
+    <div className="bg-transparent backdrop-blur-md px-8 py-10 w-full animate-fade-in">
+      {/* Titre avec boutons d'action */}
+      <div className="flex justify-between items-center mb-2">
+        <h1 className="text-2xl font-bold text-blue-900">
+          Cours enseignés
+        </h1>
+        <div className="flex items gap-2 h-15">
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            <FaPlus className="w-4 h-4 mr-8" />
+            Ajouter UE
+          </button>
+          <ImportUEExcel onSuccess={(ues) => setCourses((prev) => [...prev, ...ues])} />
+        </div>
+      </div>
+
+      {/* Modal du formulaire d'ajout */}
+      {showForm && (
+        <div className="fixed inset-0 bg-green-100 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Ajouter une UE</h2>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
+            </div>
+            <UEForm 
+              filiereOptions={filieres} 
+              parcoursOptions={parcours} 
+              anneesEtudeOptions={anneesEtude} 
+              semestreOptions={semestres} 
+              onSuccess={(newUe) => {
+                setCourses(prev => [...prev, newUe]);
+                setShowForm(false);
+              }} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal du formulaire de modification */}
+      {showModifForm && ueToModify && (
+        <div className="fixed inset-0 bg-green-100 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Modifier l'UE</h2>
+              <button
+                onClick={() => {
+                  setShowModifForm(false);
+                  setUeToModify(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
+            </div>
+            <ModifUE 
+              ue={ueToModify}
+              filiereOptions={filieres} 
+              parcoursOptions={parcours} 
+              anneesEtudeOptions={anneesEtude} 
+              semestreOptions={semestres}
+              onSuccess={(updatedUe) => {
+                setCourses(prev => prev.map(c => c.id === updatedUe.id ? updatedUe : c));
+                setShowModifForm(false);
+                setUeToModify(null);
+              }}
+              onCancel={() => {
+                setShowModifForm(false);
+                setUeToModify(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Filtre */}
+      <div className="flex mb-6 mt-10 gap-4.5">
+        <h2 className="flex items-center gap-3 text-lg font-semibold text-blue-900">
+          <FaClipboardList className="text-blue-700" />
+          <span>Filtrer par</span>
+        </h2>
+        <select
+          value={selectedFiliere}
+          onChange={(e) => {
+            const filiereObj = filieres.find(f => f.abbreviation === e.target.value);
+            setSelectedFiliere(e.target.value);
+            setSelectedFiliereObject(filiereObj);
+          }}
+          className="px-4 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        >
+          <option value="">Filières</option>
+          {filieres?.map((filiere, idx) => (
+            <option key={idx} value={filiere.abbreviation}>
+              {filiere.abbreviation}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedParcours}
+          onChange={(e) => {
+            const parcoursObj = parcours.find(p => p.libelle === e.target.value);
+            setSelectedParcours(e.target.value);
+            setSelectedParcoursObject(parcoursObj);
+          }}
+          className="px-4 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        >
+          <option value="">Parcours</option>
+          {parcours?.map((parcours, idx) => (
+            <option key={idx} value={parcours.libelle}>
+              {parcours.libelle}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedAnneeEtude}
+          onChange={(e) => {
+            const anneeObj = anneesEtude.find(a => a.libelle === e.target.value);
+            setSelectedAnneeEtude(e.target.value);
+            setSelectedAnneeEtudeObject(anneeObj);
+          }}
+          className="px-4 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        >
+          <option value="">Année d'étude</option>
+          {anneesEtude?.map((annee, idx) => (
+            <option key={idx} value={annee.libelle}>
+              {annee.libelle}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedSemestre}
+          onChange={(e) => {
+            const semestreObj = semestres.find(s => s.libelle === e.target.value);
+            setSelectedSemestre(e.target.value);
+            setSelectedSemestreObject(semestreObj);
+          }}
+          className="px-4 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        >
+          <option value="">Semestre</option>
+          {semestres?.map((semestre, idx) => (
+            <option key={idx} value={semestre.libelle}>
+              {semestre.libelle}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Tableau avec actions */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0">
+          <thead>
+            <tr className="text-left text-sm font-medium text-gray-700">
+              <th 
+                className="px-4 py-3 border-b border-gray-200 bg-gray-50 cursor-pointer"
+                onClick={() => requestSort('code')}
+              >
+                <div className="flex items-center">
+                  Code UE
+                  {getSortIcon('code')}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 border-b border-gray-200 bg-gray-50 cursor-pointer"
+                onClick={() => requestSort('libelle')}
+              >
+                <div className="flex items-center">
+                  Libellé UE
+                  {getSortIcon('libelle')}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 border-b border-gray-200 bg-gray-50 cursor-pointer"
+                onClick={() => requestSort('credits')}
+              >
+                <div className="flex items-center">
+                  Crédit
+                  {getSortIcon('credits')}
+                </div>
+              </th>
+              <th className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center">
+                  Parcours
+                </div>
+              </th>
+              <th className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center">
+                  Filière
+                </div>
+              </th>
+              <th className="px-4 py-3 border-b border-gray-200 bg-gray-50 text-center">
+                <div className="flex items-center justify-center">
+                  Année d'étude
+                </div>
+              </th>
+              <th className="px-4 py-3 border-b border-gray-200 bg-gray-50 text-center">
+                <div className="flex items-center justify-center">
+                  Semestre
+                </div>
+              </th>
+              <th className="px-4 py-3 border-b border-gray-200 bg-gray-50 text-center">
+                <div className="flex items-center justify-center">
+                  Actions
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCourses && sortedCourses.length > 0 ? (
+              sortedCourses.map((course, idx) => (
+                <tr
+                  key={idx}
+                  className={`hover:bg-gray-50 transition ${
+                    selectedCourse?.code === course.code ? 'bg-orange-50' : ''
+                  }`}
+                >
+                  <td className="px-4 py-3 border-b border-gray-200 font-medium text-gray-900">
+                    {course.code}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    {course.libelle}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200 text-center">
+                    {course.nbre_credit}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    {trouverObjetParId(parcours, course.parcours)?.libelle}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    {trouverObjetParId(filieres, course.filiere)?.abbreviation}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200 text-center">
+                    {trouverObjetParId(anneesEtude, course.annee_etude)?.libelle}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200 text-center">
+                    {trouverObjetParId(semestres, course.semestre)?.libelle}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => handleModify(course)}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        title="Modifier"
+                      >
+                        <FaEdit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(course.id)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Supprimer"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  Aucun cours
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

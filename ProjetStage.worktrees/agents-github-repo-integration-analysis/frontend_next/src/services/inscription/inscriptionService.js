@@ -1,0 +1,145 @@
+
+import api from "@/services/api";
+
+const inscriptionService = {
+  /**
+   *  Récupère les UE avec chargement intelligent
+   * 
+   * @param {Object} params - Paramètres de filtrage
+   * @param {number} params.parcours - ID du parcours
+   * @param {number} params.filiere - ID de la filière
+   * @param {number} params.annee_etude - ID de l'année d'étude
+   * 
+   * @param {Object} options - Options de chargement
+   * @param {boolean} options.isNewStudent - Si true, charge les niveaux précédents
+   * @param {string} options.anneeLibelle - Libellé de l'année (ex: "Licence 2")
+   */
+  getUEs: async (params, options = {}) => {
+    try {
+      const { isNewStudent = false, anneeLibelle = null } = options;
+      
+      
+      //  MODE MULTI-NIVEAUX pour nouveaux étudiants
+      if (isNewStudent && anneeLibelle) {
+        
+        const response = await api.get("/inscription/ues/multi-niveaux/", { params });
+        
+        const data = response.data;
+        
+        return {
+          ues: data.ues || [],
+          niveaux_charges: data.niveaux_charges || [],
+          niveau_selectionne: data.niveau_selectionne,
+          total_ues: data.total_ues || 0
+        };
+      }
+      
+      //  MODE STANDARD pour anciens étudiants
+      
+      const response = await api.get("/notes/ues/filtrer/", { params });
+      
+      const data = response.data;
+      if (!data) return { ues: [], niveaux_charges: [], total_ues: 0 };
+      
+      // Support différents formats de réponse
+      const ues = Array.isArray(data) ? data : (data.results || data.ues || []);
+      
+      return {
+        ues,
+        niveaux_charges: [],
+        total_ues: ues.length
+      };
+      
+    } catch (error) {
+      console.error(" Erreur dans getUEs:", error);
+      throw error;
+    }
+  },
+  
+  // Normaliser la réponse API
+  _normalizeResponse: (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    return data.results || data.ues || [];
+  },
+  
+  // Créer une inscription
+  createInscription: async (data) => {
+    try {
+      const response = await api.post("inscription/inscription/", data);
+      return response.data.results || response.data;
+    } catch (error) {
+      console.error("Erreur dans createInscription:", error);
+      throw error;
+    }
+  },
+  
+  creerCompteEtudiant: async (data) => {
+    try {
+      const response = await api.post("/inscription/creer-compte-etudiant/", data);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur dans creerCompteEtudiant:", error);
+      throw error;
+    }
+  },
+  
+  importerComptesEtudiants: async (formData) => {
+    try {
+      const response = await api.post("/inscription/creer-compte-etudiant/", formData, {
+        responseType: "blob",
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Erreur dans importerComptesEtudiants:", error);
+      throw error;
+    }
+  },
+  
+  renvoyerIdentifiants: async (data) => {
+    try {
+      const response = await api.post("/inscription/renvoyer-identifiants/", data);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur dans renvoyerIdentifiants:", error);
+      throw error;
+    }
+  },
+
+  // Vérifier ancien étudiant
+  verifierAncienEtudiant: async (numCarte) => {
+    try {
+      const response = await api.get(`/inscription/verifier-ancien-etudiant/${numCarte}/`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur verifierAncienEtudiant:", error);
+      throw error;
+    }
+  },
+
+  // Inscription Ancien Étudiant
+  inscriptionAncienEtudiant: async (data) => {
+    try {
+      const response = await api.post("/inscription/ancien-etudiant/", data);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur inscriptionAncienEtudiant:", error);
+      throw error;
+    }
+  },
+  // Vérifier si l'étudiant est déjà inscrit pour l'année active
+  verifierInscriptionEnCours: async (etudiantId) => {
+    try {
+      const response = await api.get(`/inscription/verifier-inscription/${etudiantId}/`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur verifierInscriptionEnCours:", error);
+      throw error;
+    }
+  }
+};
+
+export default inscriptionService;
