@@ -5,7 +5,7 @@ const baseURL = baseRaw.endsWith("/api") ? baseRaw.slice(0, -4) : baseRaw;
 
 const eplApi = axios.create({
   baseURL: `${baseURL.replace(/\/$/, "")}/api`,
-  withCredentials: true,
+  withCredentials: false,
   headers: {
     "Content-Type": "application/json",
   },
@@ -16,6 +16,15 @@ function getAccessToken() {
   return window.localStorage?.getItem("access") || null;
 }
 
+function buildQueryString(params = {}) {
+  return new URLSearchParams(Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")).toString();
+}
+
+export function getFigureUrl(view, params = {}, fmt = "png") {
+  const query = buildQueryString({ view, fmt, ...params });
+  return `${eplApi.defaults.baseURL}/figures?${query}`;
+}
+
 export async function getHealth() {
   const response = await eplApi.get("/health");
   return response.data;
@@ -23,6 +32,31 @@ export async function getHealth() {
 
 export async function getDashboardAggregates(params = {}) {
   const response = await eplApi.get("/dashboard/aggregates", { params });
+  return response.data;
+}
+
+export async function getDisponibilites(params = {}) {
+  const response = await eplApi.get("/meta/disponibilites", { params });
+  return response.data;
+}
+
+export async function getUes(limit = 1000) {
+  const response = await eplApi.get("/meta/ues", { params: { limit } });
+  return response.data;
+}
+
+export async function getUEStats(code, params = {}) {
+  const response = await eplApi.get(`/ues/${encodeURIComponent(code)}/stats`, { params });
+  return response.data;
+}
+
+export async function getCompare(params = {}) {
+  const response = await eplApi.get(`/compare`, { params });
+  return response.data;
+}
+
+export async function getEtudiantParcours(id, params = {}) {
+  const response = await eplApi.get(`/etudiants/${encodeURIComponent(id)}/parcours`, { params });
   return response.data;
 }
 

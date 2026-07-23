@@ -4,14 +4,15 @@ import axios from "axios";
 const api = axios.create({
   //baseURL: "http://localhost:8000/api",
   //baseURL: 'http://172.20.1.22/api', 
-  baseURL: 'https://epl.univ-lome.tg/api',
- // baseURL: "/api/",
+  //baseURL: 'https://epl.univ-lome.tg/api',
+  // baseURL: "/api/",
+  baseURL: "http://localhost:8001/api",
 
   timeout: 0, // ✅ Pas de timeout  
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, 
+  withCredentials: false,
 });
 
 // ✅ CACHE GLOBAL (10 minutes)

@@ -4,11 +4,16 @@ import { usePathname } from "next/navigation";
 import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaBook, FaClipboardList, FaProjectDiagram, FaFileAlt, FaChartBar, FaSignOutAlt } from "react-icons/fa";
 
 const links = [
-  {href: "/gestion/dashboard/mon-etablissement", label: "Mon Etablissement", icon: <FaTachometerAlt /> },
+  { href: "/gestion/dashboard/mon-etablissement", label: "Mon Etablissement", icon: <FaTachometerAlt /> },
+  { href: "/gestion/dashboard/tableau-de-bord", label: "Vue globale", icon: <FaTachometerAlt /> },
+  { href: "/gestion/dashboard/departement", label: "Vue Département", icon: <FaChartBar /> },
+  { href: "/gestion/dashboard/filiere", label: "Vue Filière", icon: <FaUserGraduate /> },
+  { href: "/gestion/dashboard/ue", label: "Vue UE", icon: <FaBook /> },
+  { href: "/gestion/dashboard/etudiant", label: "Vue Étudiant", icon: <FaChalkboardTeacher /> },
+  { href: "/gestion/dashboard/comparaison", label: "Comparaison", icon: <FaProjectDiagram /> },
   { href: "/gestion/dashboard/gestion-ue", label: "Gestion UEs", icon: <FaBook /> },
   { href: "/gestion/dashboard/affectation-ue", label: "Affectations d'UE ", icon: <FaProjectDiagram /> },
   { href: "/gestion/dashboard/gestion-annee-universitaire", label: "Gestion Année Universitaire", icon: <FaClipboardList /> },
-
 ];
 
 export default function MenuLateralGestionnaire() {

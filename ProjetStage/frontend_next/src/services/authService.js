@@ -96,11 +96,42 @@ api.interceptors.response.use(
 
 export const authAPI = {
   login: async (username, password) => {
-    // ici on envoie les bons noms de champs
-    const res = await api.post("auth/login/", { username, password });
-    const { access, refresh, user } = res.data;
-    TokenStorage.setTokens({ access, refresh });
-    return { access, refresh, user };
+    // Tentative 1 : endpoint legacy (/auth/login/) qui renvoie access/refresh/user
+    try {
+      const res = await api.post("auth/login/", { username, password });
+      const { access, refresh, user } = res.data;
+      TokenStorage.setTokens({ access, refresh });
+      return { access, refresh, user };
+    } catch (err) {
+      // Si le endpoint n'existe pas (FastAPI local) -> essayer /auth/token
+      if (err.response && err.response.status === 404) {
+        // FastAPI token endpoint attend du form-url-encoded
+        const params = new URLSearchParams();
+        params.append("username", username);
+        params.append("password", password);
+        try {
+          const tokenRes = await api.post("auth/token", params, {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          });
+          const access = tokenRes.data.access_token || tokenRes.data.access;
+          // Pas de refresh côté FastAPI par défaut
+          TokenStorage.setTokens({ access });
+          // Essayer de récupérer le profil utilisateur depuis /utilisateurs/me/
+          try {
+            const profile = await api.get("utilisateurs/me/");
+            const user = profile.data;
+            return { access, refresh: null, user };
+          } catch (_e) {
+            // Retourner un utilisateur minimal si le profil n'est pas disponible
+            const user = { username, role: "admin" };
+            return { access, refresh: null, user };
+          }
+        } catch (_tokenErr) {
+          throw _tokenErr;
+        }
+      }
+      throw err;
+    }
   },
   register: async (userPayload) => {
     const res = await api.post("auth/register/", userPayload);
