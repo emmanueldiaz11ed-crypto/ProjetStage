@@ -76,20 +76,28 @@ export default function VueUE() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 text-sm font-semibold text-slate-600">Boxplot par sexe</div>
+              <div className="mb-3 text-sm font-semibold text-slate-600">Répartition par sexe (donut)</div>
               <img
-                src={getFigureUrl("boxplot_by_sex", { ue: code })}
-                alt="Boxplot par sexe"
+                src={getFigureUrl("donut", { ue: code })}
+                alt="Répartition par sexe"
                 className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
               />
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 text-sm font-semibold text-slate-600">Moyenne par sexe</div>
+              <div className="mb-3 text-sm font-semibold text-slate-600">Histogramme des notes</div>
               <img
-                src={getFigureUrl("courbe_moyenne_par_sexe", { ue: code })}
-                alt="Moyenne par sexe"
+                src={getFigureUrl("histogram", { ue: code })}
+                alt="Histogramme des notes"
+                className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
+              />
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 text-sm font-semibold text-slate-600">Boxplot (distribution)</div>
+              <img
+                src={getFigureUrl("boxplot", { ue: code })}
+                alt="Boxplot"
                 className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
               />
             </div>

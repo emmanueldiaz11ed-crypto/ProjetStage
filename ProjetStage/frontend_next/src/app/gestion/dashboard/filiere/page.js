@@ -146,18 +146,18 @@ export default function VueFiliere() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 text-sm font-semibold text-slate-600">Heatmap filière / semestre</div>
+              <div className="mb-3 text-sm font-semibold text-slate-600">Évolution de la moyenne par sexe</div>
               <img
-                src={getFigureUrl("heatmap_filiere_semestre", figureParams)}
-                alt="Heatmap filière semestre"
+                src={getFigureUrl("courbe_moyenne_par_sexe", figureParams)}
+                alt="Évolution moyenne par sexe"
                 className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
               />
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 text-sm font-semibold text-slate-600">Taux de réussite par sexe</div>
+              <div className="mb-3 text-sm font-semibold text-slate-600">Distribution par sexe (boxplot)</div>
               <img
-                src={getFigureUrl("donut", figureParams)}
-                alt="Répartition par sexe"
+                src={getFigureUrl("boxplot_by_sex", figureParams)}
+                alt="Boxplot par sexe"
                 className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
               />
             </div>

@@ -144,12 +144,20 @@ export default function VueDepartement() {
             </section>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 text-sm font-semibold text-slate-600">Heatmap UE / semestre</div>
+              <div className="mb-3 text-sm font-semibold text-slate-600">Radar comparatif des filières</div>
               <img
-                src={getFigureUrl("heatmap_ue_semestre", figureParams)}
-                alt="Heatmap UE semestre"
+                src={getFigureUrl("radar_filieres", figureParams)}
+                alt="Radar filières"
+                className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
+              />
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 text-sm font-semibold text-slate-600">Heatmap filière / semestre</div>
+              <img
+                src={getFigureUrl("heatmap_filiere_semestre", figureParams)}
+                alt="Heatmap filière semestre"
                 className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
               />
             </div>

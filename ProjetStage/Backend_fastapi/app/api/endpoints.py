@@ -22,12 +22,7 @@ from app.services.analytics import (
     calculer_stats_notes, calculer_stats_df,
 )
 from app.services.interpreter import interpreter
-from app.services.plotting import (
-    PLOT_DISPATCH, make_cache_key,
-    get_cached_figure, set_cached_figure,
-    get_cached_tableau, set_cached_tableau,
-    clear_cache, save_figure_atomic, build_figure_subpath,
-)
+import app.services.plotting
 from app.core.config import FIGURES_DIR, CACHE_TTL, SEUIL_REUSSITE, MAX_UPLOAD_SIZE
 
 logger = logging.getLogger(__name__)
@@ -71,7 +66,7 @@ def _scores_sans_dept(df_actuel, annee, semestre, cohorte, sexe, ue,
 
 
 def _get_dashboard_data(df_filtre, df_actuel, filters_dict, empreinte) -> dict:
-    cle_cache = make_cache_key(
+    cle_cache = app.services.plotting.make_cache_key(
         annee=filters_dict.get("annee"),
         semestre=filters_dict.get("semestre"),
         cohorte=filters_dict.get("cohorte"),
@@ -84,7 +79,7 @@ def _get_dashboard_data(df_filtre, df_actuel, filters_dict, empreinte) -> dict:
         vue="dashboard_data"
     )
 
-    cached_data = get_cached_tableau(cle_cache, empreinte)
+    cached_data = app.services.plotting.get_cached_tableau(cle_cache, empreinte)
     if cached_data is not None:
         return cached_data
 
@@ -112,7 +107,7 @@ def _get_dashboard_data(df_filtre, df_actuel, filters_dict, empreinte) -> dict:
         ),
     }
     
-    set_cached_tableau(cle_cache, result, empreinte)
+    app.services.plotting.set_cached_tableau(cle_cache, result, empreinte)
     return result
 
 
@@ -512,27 +507,27 @@ def get_figure(
         filiere=filiere, departement=departement,
         type_formation=type_formation, niveau=niveau,
     )
-    cle = make_cache_key(annee, semestre, cohorte, sexe, ue, view,
+    cle = app.services.plotting.make_cache_key(annee, semestre, cohorte, sexe, ue, view,
                          filiere=filiere, departement=departement,
                          type_formation=type_formation, niveau=niveau)
 
     # Cache en mémoire
-    en_cache = get_cached_figure(cle, current_fingerprint=empreinte)
+    en_cache = app.services.plotting.get_cached_figure(cle, current_fingerprint=empreinte)
     if en_cache and Path(en_cache).exists():
         return _figure_response(en_cache, fmt)
     elif en_cache:
-        set_cached_figure(cle, None, empreinte)
+        app.services.plotting.set_cached_figure(cle, None, empreinte)
 
     # Cache disque
     nom_fichier = f"fig_{hashlib.md5(cle.encode()).hexdigest()}.{fmt}"
-    chemin      = build_figure_subpath(FIGURES_DIR, annee, semestre, cohorte, ue, view, nom_fichier, filiere=filiere)
+    chemin      = app.services.plotting.build_figure_subpath(FIGURES_DIR, annee, semestre, cohorte, ue, view, nom_fichier, filiere=filiere)
     meta_chemin = chemin.with_suffix(".meta.json")
     if meta_chemin.exists() and chemin.exists():
         try:
             meta_disk = json.loads(meta_chemin.read_text())
             if (time.time() - meta_disk.get("generated_at_ts", 0) <= meta_disk.get("ttl_seconds", CACHE_TTL)
                     and meta_disk.get("data_fingerprint") == empreinte):
-                set_cached_figure(cle, str(chemin), empreinte)
+                app.services.plotting.set_cached_figure(cle, str(chemin), empreinte)
                 return _figure_response(str(chemin), fmt)
         except Exception:
             pass
@@ -549,18 +544,18 @@ def get_figure(
         df_coh  = apply_filters_to_df(df_actuel, None, None, coh_val, None,
                                        filiere=fil_val, departement=departement)
         from app.services.plotting import plot_student_vs_cohorte as _plot_sc
-        cle_sc   = make_cache_key(None, None, coh_val, None, etud_id, "student_cohorte", filiere=fil_val)
-        cache_sc = get_cached_figure(cle_sc, current_fingerprint=empreinte)
+        cle_sc   = app.services.plotting.make_cache_key(None, None, coh_val, None, etud_id, "student_cohorte", filiere=fil_val)
+        cache_sc = app.services.plotting.get_cached_figure(cle_sc, current_fingerprint=empreinte)
         if cache_sc and Path(cache_sc).exists():
             return _figure_response(cache_sc, fmt)
         nom_sc  = f"fig_{hashlib.md5(cle_sc.encode()).hexdigest()}.{fmt}"
-        ch_sc   = build_figure_subpath(FIGURES_DIR, None, None, None, None, "student_cohorte", nom_sc)
+        ch_sc   = app.services.plotting.build_figure_subpath(FIGURES_DIR, None, None, None, None, "student_cohorte", nom_sc)
         fig_sc  = _plot_sc(etud_df, df_coh)
-        save_figure_atomic(fig_sc, ch_sc, {"data_fingerprint": empreinte, "ttl_seconds": CACHE_TTL}, fmt=fmt)
-        set_cached_figure(cle_sc, str(ch_sc), empreinte)
+        app.services.plotting.save_figure_atomic(fig_sc, ch_sc, {"data_fingerprint": empreinte, "ttl_seconds": CACHE_TTL}, fmt=fmt)
+        app.services.plotting.set_cached_figure(cle_sc, str(ch_sc), empreinte)
         return _figure_response(str(ch_sc), fmt)
 
-    fn = PLOT_DISPATCH.get(view)
+    fn = app.services.plotting.PLOT_DISPATCH.get(view)
     if fn is None:
         raise HTTPException(status_code=400, detail=f"Vue inconnue : {view}")
 
@@ -571,8 +566,8 @@ def get_figure(
             "params": {"view": view, "annee": annee, "semestre": semestre,
                        "cohorte": cohorte, "filiere": filiere, "departement": departement}}
     try:
-        save_figure_atomic(fig, chemin, meta, fmt=fmt)
-        set_cached_figure(cle, str(chemin), empreinte)
+        app.services.plotting.save_figure_atomic(fig, chemin, meta, fmt=fmt)
+        app.services.plotting.set_cached_figure(cle, str(chemin), empreinte)
         return _figure_response(str(chemin), fmt)
     except Exception as e:
         logger.exception("Erreur figure : %s", e)
@@ -589,7 +584,7 @@ def admin_vider_cache(
     key: Annotated[Optional[str], Query()] = None,
 ):
     try:
-        clear_cache(all_keys=all, key=key)
+        app.services.plotting.clear_cache(all_keys=all, key=key)
         cache_donnees.timestamp  = 0.0
         cache_donnees.file_mtime = 0.0
         return {"status": "ok", "rows": len(get_cached_data())}

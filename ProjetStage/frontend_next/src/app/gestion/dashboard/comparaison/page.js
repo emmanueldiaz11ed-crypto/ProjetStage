@@ -29,7 +29,6 @@ export default function VueComparaison() {
     setLoading(false);
   };
 
-  const figureView = typeE === "ue" ? "boxplot_by_sex" : typeE === "departement" ? "heatmap_ue_semestre" : "heatmap_filiere_semestre";
   const figureParams = { type: typeE, entites };
 
   return (
@@ -95,13 +94,21 @@ export default function VueComparaison() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 text-sm font-semibold text-slate-600">Graphique de comparaison</div>
-            <img
-              src={getFigureUrl(figureView, figureParams)}
-              alt="Graphique de comparaison"
-              className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
-            />
+          <div className="grid gap-6 lg:grid-cols-3">
+            {data.entites?.map((row, index) => {
+              const keyParam = typeE === "ue" ? "ue" : typeE === "departement" ? "departement" : "filiere";
+              const params = { [keyParam]: row.nom };
+              return (
+                <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="mb-3 text-sm font-semibold text-slate-600">{row.nom || row.nom_prenoms || `Entité ${index + 1}`}</div>
+                  <img
+                    src={getFigureUrl("boxplot", params)}
+                    alt={`Boxplot ${row.nom}`}
+                    className="h-72 w-full rounded-xl object-contain border border-slate-200 bg-slate-50"
+                  />
+                </div>
+              );
+            })}
           </div>
         </>
       ) : (

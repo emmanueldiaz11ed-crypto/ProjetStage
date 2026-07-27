@@ -38,9 +38,10 @@ export default function VueGlobale() {
 
   const figureParams = { ...filters };
   const figures = [
-    { title: "Heatmap des filières / semestres", view: "heatmap_filiere_semestre" },
-    { title: "Répartition par sexe", view: "donut" },
-    { title: "Évolution des cohortes", view: "courbe_cohortes" },
+    { title: "Distribution des notes", view: "histogram" },
+    { title: "Performance", view: "boxplot" },
+    { title: "Performance par sexe", view: "boxplot_by_sex" },
+    { title: "Répartition Réussite/Echec", view: "donut" },
   ];
 
   return (
