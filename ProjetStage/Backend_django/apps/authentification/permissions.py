@@ -105,3 +105,21 @@ class IsRespInscriptionOrSecretaire(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         return hasattr(user, 'resp_notes') or hasattr(user, 'secretaire')
+
+# Permissions pour accéder aux statistiques de gestion
+class IsGestionnaireOrChefServiceOrProfessor(BasePermission):
+    """
+    Permissions pour accéder aux statistiques de gestion.
+    Autorise: gestionnaire, chef_service_exam, professeur, admin
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        return (
+            user.is_authenticated and (
+                user.is_superuser or
+                user.is_staff or
+                hasattr(user, 'gestionnaire') or
+                hasattr(user, 'chef_service_exam') or
+                hasattr(user, 'professeur')
+            )
+        )

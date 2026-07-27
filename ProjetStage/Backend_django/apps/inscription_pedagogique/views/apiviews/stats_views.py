@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from apps.inscription_pedagogique.models import AnneeAcademique, Inscription, Parcours, Filiere, AnneeEtude
+from apps.authentification.permissions import IsGestionnaireOrChefServiceOrProfessor
 from django.db.models import Count
 import logging
 from rest_framework.decorators import api_view, permission_classes
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class StatistiquesInscriptionsAPIView(APIView):
     """Stats des inscriptions actuelles"""
-    # permission_classes = [IsAuthenticated]  
+    permission_classes = [IsGestionnaireOrChefServiceOrProfessor]
     
     def get(self, request):
         # Récupérer les filtres 
@@ -135,7 +136,7 @@ class StatistiquesAbandonsAPIView(APIView):
     Statistiques d'abandon par comparaison entre années N-1 et N
     Exclut les étudiants de L1
     """
-    # permission_classes = [IsAuthenticated]  # Décommenter après les tests
+    permission_classes = [IsGestionnaireOrChefServiceOrProfessor]
     
     def get(self, request):
         """Calcul du taux d'abandon par comparaison N-1 vs N"""
