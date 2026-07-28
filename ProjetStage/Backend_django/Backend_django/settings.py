@@ -64,14 +64,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Configuration CORS  sécurisée
-CORS_ALLOWED_ORIGINS = [
-    "http://epl.univ-lome.tg",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",  
-]
-
+# Configuration CORS sécurisée via variables d'environnement
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='https://epl.univ-lome.tg,http://epl.univ-lome.tg,https://projet-stage-ashen.vercel.app,https://epl-pedago.vercel.app,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
+)
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -86,14 +84,12 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# CSRF Configuration
-CSRF_TRUSTED_ORIGINS = [
-    "http://epl.univ-lome.tg",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://epl-projet-api.onrender.com",
-    "https://epl-pedago.vercel.app",
-    ]
+# CSRF Configuration via environment variables
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://epl.univ-lome.tg,http://epl.univ-lome.tg,http://localhost:3000,http://127.0.0.1:3000,https://epl-projet-api.onrender.com,https://epl-pedago.vercel.app,https://projet-stage-ashen.vercel.app',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
+)
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 
