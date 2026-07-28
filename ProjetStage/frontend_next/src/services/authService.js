@@ -1,0 +1,249 @@
+"use client";
+import api from "./api"; 
+
+const TokenStorage = {
+  getAccess: () => localStorage.getItem("access"),
+  getRefresh: () => localStorage.getItem("refresh"),
+  setTokens: ({ access, refresh }) => {
+    if (access) localStorage.setItem("access", access);
+    if (refresh) localStorage.setItem("refresh", refresh);
+  },
+  clear: () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+  },
+};
+
+// Liste des endpoints publics 
+const PUBLIC_ENDPOINTS = [
+  '/token/refresh/',           // Refresh token (utilise payload, pas header)
+  '/notes/ues/filtrer/',       // Filtrage UEs (public pour inscription)
+  '/auth/register-etudiant/',  // Création étudiant (public)
+  '/auth/register/',           // Inscription basique
+  '/auth/login/',              // Login (pas de token requis)
+  '/inscription/annee-academique/', // Récup année active
+  '/inscription/inscription/', // Création inscription
+  '/inscription/verifier-ancien-etudiant/', // Vérif ancien étudiant
+  '/inscription/ancien-etudiant/', // Inscription ancien
+];
+
+let isRefreshing = false;
+let refreshQueue = [];
+
+function processQueue(error, token = null) {
+  refreshQueue.forEach(prom => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  refreshQueue = [];
+}
+
+api.interceptors.request.use((config) => {
+  const token = TokenStorage.getAccess();
+  
+  // Ne pas ajouter le token pour les endpoints publics
+  const isPublic = PUBLIC_ENDPOINTS.some(endpoint => config.url.endsWith(endpoint));
+  if (token && !isPublic) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  
+  return config;
+}, (error) => Promise.reject(error));
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = TokenStorage.getRefresh();
+      if (!refreshToken) {
+        TokenStorage.clear();
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }).catch(err => Promise.reject(err));
+      }
+
+      isRefreshing = true;
+      try {
+        // Note : Grâce à PUBLIC_ENDPOINTS, pas d'header ajouté ici
+        const res = await api.post("token/refresh/", { refresh: refreshToken });
+        const newAccess = res.data.access;
+        TokenStorage.setTokens({ access: newAccess });
+        processQueue(null, newAccess);
+        originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        TokenStorage.clear();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+
+export const authAPI = {
+  login: async (username, password) => {
+    // Tentative 1 : endpoint legacy (/auth/login/) qui renvoie access/refresh/user
+    try {
+      const res = await api.post("auth/login/", { username, password });
+      const { access, refresh, user } = res.data;
+      TokenStorage.setTokens({ access, refresh });
+      return { access, refresh, user };
+    } catch (err) {
+      // Si le endpoint n'existe pas (FastAPI local) -> essayer /auth/token
+      if (err.response && err.response.status === 404) {
+        // FastAPI token endpoint attend du form-url-encoded
+        const params = new URLSearchParams();
+        params.append("username", username);
+        params.append("password", password);
+        try {
+          const tokenRes = await api.post("auth/token", params, {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          });
+          const access = tokenRes.data.access_token || tokenRes.data.access;
+          // Pas de refresh côté FastAPI par défaut
+          TokenStorage.setTokens({ access });
+          // Essayer de récupérer le profil utilisateur depuis /utilisateurs/me/
+          try {
+            const profile = await api.get("utilisateurs/me/");
+            const user = profile.data;
+            return { access, refresh: null, user };
+          } catch (_e) {
+            // Retourner un utilisateur minimal si le profil n'est pas disponible
+            const user = { username, role: "admin" };
+            return { access, refresh: null, user };
+          }
+        } catch (_tokenErr) {
+          throw _tokenErr;
+        }
+      }
+      throw err;
+    }
+  },
+  register: async (userPayload) => {
+    const res = await api.post("auth/register/", userPayload);
+    return res.data;
+  },
+
+  partialRegister: async (payload) => {
+  try {
+    const { role, data } = payload;
+
+    const formattedData = {
+      role: role,
+
+      // ✅ Données utilisateur
+      email: data.utilisateur.email,
+      prenom: data.utilisateur.first_name,
+      nom: data.utilisateur.last_name,
+      sexe: data.utilisateur.sexe,
+      telephone: data.utilisateur.telephone,
+
+      // ✅ Données spécifiques
+      num_carte: data.num_carte,
+      autre_prenom: data.autre_prenom,
+      date_naiss: data.date_naiss,
+      lieu_naiss: data.lieu_naiss,
+      titre: data.titre,
+    };
+
+    const response = await api.post(
+      "/auth/partial-register/",
+      formattedData
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la création de l'utilisateur partiel:", error);
+    throw error;
+  }
+},
+
+
+  refresh: async () => {
+    const refresh = TokenStorage.getRefresh();
+    if (!refresh) throw new Error("Pas de refresh token");
+    const res = await api.post("token/refresh/", { refresh });
+    const { access } = res.data;
+    TokenStorage.setTokens({ access });
+    return res.data;
+  },
+
+  logout: async (callBackendInvalidate = false) => {
+    const refresh = TokenStorage.getRefresh();
+    TokenStorage.clear();
+    if (callBackendInvalidate && refresh) {
+      try {
+        await api.post("auth/logout/", { refresh });
+      } catch (e) {}
+    }
+  },
+
+  getProfile: async () => {
+    try {
+      const res = await api.get("utilisateurs/me/");
+      return res.data;
+    } catch (error) {
+      console.error("Erreur lors de la récupération du profil utilisateur:", error);
+      throw error;
+    }
+  },
+  
+  // ====== MÉTHODES POUR RESET PASSWORD =====
+  
+  /**
+   * Demande de réinitialisation de mot de passe
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Promise} Réponse du serveur
+   */
+  demandeResetPassword: async (email) => {
+    const res = await api.post("auth/password-reset/demande/", { email });
+    return res.data;
+  },
+
+  /**
+   * Vérifie si le token de réinitialisation est valide
+   * @param {string} uid - ID utilisateur encodé
+   * @param {string} token - Token de réinitialisation
+   * @returns {Promise} Validation du token
+   */
+  verifierTokenReset: async (uid, token) => {
+    const res = await api.post("auth/password-reset/verifier/", { uid, token });
+    return res.data;
+  },
+
+  /**
+   * Réinitialise le mot de passe avec le token
+   * @param {string} uid - ID utilisateur encodé
+   * @param {string} token - Token de réinitialisation
+   * @param {string} password - Nouveau mot de passe
+   * @param {string} password_confirmation - Confirmation du mot de passe
+   * @returns {Promise} Confirmation de la réinitialisation
+   */
+  resetPassword: async (uid, token, password, password_confirmation) => {
+    const res = await api.post("auth/password-reset/confirmer/", { 
+      uid, 
+      token, 
+      password, 
+      password_confirmation 
+    });
+    return res.data;
+  },
+
+  apiInstance: () => api,
+};
+
+export default authAPI;

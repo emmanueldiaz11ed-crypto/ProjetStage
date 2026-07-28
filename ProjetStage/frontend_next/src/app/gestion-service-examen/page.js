@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation";
+
+export default function DashboardAdminRedirect() {
+  redirect("/gestion-service-examen/dashboard/tableau-de-bord");
+  return null;
+} 

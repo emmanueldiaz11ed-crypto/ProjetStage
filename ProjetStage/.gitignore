@@ -1,0 +1,51 @@
+# === DJANGO BACKEND (PostgreSQL) ===
+Backend_django/env/
+.env 
+Backend_django/__pycache__/
+Backend_django/*.py[cod]
+**/__pycache__/
+*.py[cod]
+*.log
+data.json
+
+# === ENVIRONNEMENT VIRTUEL ===
+env/
+venv/
+.venv/
+
+# === NEXT.JS FRONTEND ===
+frontend_next/node_modules/
+frontend_next/.next/
+frontend_next/out/
+frontend_next/.env
+frontend_next/.env.local
+
+# === FICHIERS TEMPORAIRES & SYSTÈME ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# === ÉDITEURS ===
+.vscode/
+.idea/
+
+# === LOGS & CACHES ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+.cache/
+.pytest_cache/
+coverage/
+htmlcov/
+
+# === DIVERS ===
+*.pem
+*.crt
+*.key
+# Fichiers media (upload utilisateurs)
+Backend_django/media/
+
+# Fichiers de migrations django
+**/migrations/*.py
