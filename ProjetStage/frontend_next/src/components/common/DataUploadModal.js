@@ -64,7 +64,7 @@ export default function DataUploadModal() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await api.post("/api/data/upload", formData, {
+      const response = await api.post("/data/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
