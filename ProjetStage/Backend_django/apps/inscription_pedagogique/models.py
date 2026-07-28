@@ -1,5 +1,5 @@
 from django.db import models
-from ..utilisateurs.models import Etudiant, RespInscription, Utilisateur
+from ..utilisateurs.models import Etudiant, Utilisateur
 from ..page_professeur.models import UE  
 
 
@@ -68,7 +68,6 @@ class PeriodeInscription(models.Model):
     date_debut = models.DateField()
     date_fin = models.DateField()
     active = models.BooleanField(default=False)
-    responsable = models.ForeignKey(RespInscription, on_delete=models.SET_NULL, null=True, related_name = 'periodes_inscription')
 
 class ImportEtudiant(models.Model):
     OPERATION_CHOICES = [

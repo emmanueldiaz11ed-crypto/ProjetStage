@@ -1,14 +1,12 @@
 // src/services/api.js
 import axios from "axios";
 
-const api = axios.create({
-  //baseURL: "http://localhost:8000/api",
-  //baseURL: 'http://172.20.1.22/api', 
-  //baseURL: 'https://epl.univ-lome.tg/api',
-  // baseURL: "/api/",
-  baseURL: "http://localhost:8001/api",
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_EPL_API_URL || "http://localhost:8001";
+const normalizedBaseUrl = rawBaseUrl.replace(/\/$/, "");
 
-  timeout: 0, // ✅ Pas de timeout  
+const api = axios.create({
+  baseURL: `${normalizedBaseUrl}/api`,
+  timeout: 0,
   headers: {
     "Content-Type": "application/json",
   },
