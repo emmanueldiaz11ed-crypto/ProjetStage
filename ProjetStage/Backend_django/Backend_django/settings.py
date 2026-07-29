@@ -19,8 +19,15 @@ SECRET_KEY = config('SECRET_KEY', default='dev-secret-key-change-me')
 #ALLOWED_HOSTS = ["*"]  # Change this to your actual domain or IP address in production
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-# Configuration plus sécurisée pour le développement
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+# Configuration plus sécurisée pour le développement et la production
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,backend-django-36o2.onrender.com,epl.univ-lome.tg,projet-stage-ashen.vercel.app,epl-pedago.vercel.app',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
+)
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 
 DB_NAME = config('DB_NAME', default='postgres')
 DB_USER = config('DB_USER', default='postgres')
@@ -87,7 +94,7 @@ CORS_ALLOW_HEADERS = [
 # CSRF Configuration via environment variables
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='https://epl.univ-lome.tg,http://epl.univ-lome.tg,http://localhost:3000,http://127.0.0.1:3000,https://epl-projet-api.onrender.com,https://epl-pedago.vercel.app,https://projet-stage-ashen.vercel.app',
+    default='https://backend-django-36o2.onrender.com,https://epl.univ-lome.tg,http://epl.univ-lome.tg,http://localhost:3000,http://127.0.0.1:3000,https://epl-projet-api.onrender.com,https://epl-pedago.vercel.app,https://projet-stage-ashen.vercel.app',
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
 )
 SESSION_COOKIE_SAMESITE = "Lax"
