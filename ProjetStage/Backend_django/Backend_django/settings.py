@@ -20,11 +20,27 @@ SECRET_KEY = config('SECRET_KEY', default='dev-secret-key-change-me')
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 # Configuration plus sécurisée pour le développement et la production
+DEFAULT_ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'backend-django-36o2.onrender.com',
+    'epl.univ-lome.tg',
+    'projet-stage-ashen.vercel.app',
+    'epl-pedago.vercel.app',
+    '[::1]',
+]
+
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1,backend-django-36o2.onrender.com,epl.univ-lome.tg,projet-stage-ashen.vercel.app,epl-pedago.vercel.app',
+    default=','.join(DEFAULT_ALLOWED_HOSTS),
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
 )
+
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = DEFAULT_ALLOWED_HOSTS
+
+if 'backend-django-36o2.onrender.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('backend-django-36o2.onrender.com')
 
 print("ALLOWED_HOSTS chargés:", ALLOWED_HOSTS)
 
