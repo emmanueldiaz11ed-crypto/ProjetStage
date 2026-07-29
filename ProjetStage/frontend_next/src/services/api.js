@@ -9,7 +9,6 @@ const api = axios.create({
   timeout: 0,
   headers: {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
   },
   withCredentials: false,
 });
