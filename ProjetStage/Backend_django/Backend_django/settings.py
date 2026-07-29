@@ -26,6 +26,8 @@ ALLOWED_HOSTS = config(
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
 )
 
+print("ALLOWED_HOSTS chargés:", ALLOWED_HOSTS)
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
