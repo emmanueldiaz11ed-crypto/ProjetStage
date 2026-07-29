@@ -7,9 +7,11 @@ from rest_framework.response import Response
 from rest_framework import status, views
 from django.contrib.auth.tokens import default_token_generator
 from urllib import request
-from ..utilisateurs.services.journal import enregistrer_action
-
-from ..utilisateurs.services.journal import enregistrer_action
+try:
+    from ..utilisateurs.services.journal import enregistrer_action
+except Exception:
+    def enregistrer_action(*args, **kwargs):
+        return None
 from .serializers import RegisterSerializer, StudentRegisterSerializer
 from rest_framework.permissions import AllowAny
 from .services.auth_service import AuthService, User
@@ -94,40 +96,59 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Authentification UNIQUE
-        user = authenticate(username=username, password=password)
+        try:
+            user = authenticate(username=username, password=password)
+        except Exception:
+            user = None
 
         if not user:
-            enregistrer_action(
-                utilisateur=None,
-                action="Tentative de connexion",
-                objet="Authentification",
-                ip=request.META.get('REMOTE_ADDR'),
-                statut="ECHEC",
-                description="Identifiants invalides"
-            )
+            try:
+                enregistrer_action(
+                    utilisateur=None,
+                    action="Tentative de connexion",
+                    objet="Authentification",
+                    ip=request.META.get('REMOTE_ADDR'),
+                    statut="ECHEC",
+                    description="Identifiants invalides"
+                )
+            except Exception:
+                pass
             return Response(
                 {"detail": "Identifiants invalides"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        if user.doit_changer_mdp:
+        if getattr(user, 'doit_changer_mdp', False):
             return Response(
                 {"error": "Utilisez le lien de première connexion envoyé par email."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Génération des tokens
-        data = AuthService.login(username, password)
+        try:
+            data = AuthService.login(username, password)
+        except Exception as exc:
+            return Response(
+                {"detail": f"Erreur d'authentification: {str(exc)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        enregistrer_action(
-            utilisateur=user,
-            action="Connexion",
-            objet="Authentification",
-            ip=request.META.get('REMOTE_ADDR'),
-            statut="SUCCES",
-            description="Connexion réussie"
-        )
+        try:
+            enregistrer_action(
+                utilisateur=user,
+                action="Connexion",
+                objet="Authentification",
+                ip=request.META.get('REMOTE_ADDR'),
+                statut="SUCCES",
+                description="Connexion réussie"
+            )
+        except Exception:
+            pass
+
+        if not data:
+            return Response(
+                {"detail": "Identifiants invalides"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         response = Response(data, status=status.HTTP_200_OK)
 
@@ -135,7 +156,7 @@ class LoginView(APIView):
             key="access_token",
             value=str(data["access"]),
             httponly=True,
-            secure=True,          
+            secure=True,
             samesite="Lax",
             max_age=60 * 60,
         )
@@ -144,7 +165,7 @@ class LoginView(APIView):
             key="refresh_token",
             value=str(data["refresh"]),
             httponly=True,
-            secure=True,         
+            secure=True,
             samesite="Lax",
             max_age=7 * 24 * 60 * 60,
         )
