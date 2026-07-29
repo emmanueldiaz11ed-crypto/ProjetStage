@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from ..utilisateurs.models import Etudiant, Utilisateur
 from ..page_professeur.models import UE  
 
@@ -77,7 +78,7 @@ class ImportEtudiant(models.Model):
     ]
 
     admin = models.ForeignKey(
-        'utilisateurs.RespInscription',
+        settings.AUTH_USER_MODEL,
         related_name='operations_etudiants',
         on_delete=models.SET_NULL,
         null=True,
