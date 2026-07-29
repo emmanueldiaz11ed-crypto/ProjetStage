@@ -15,7 +15,7 @@ def run_migrations(max_retries=3, delay=3):
     for attempt in range(1, max_retries + 1):
         print(f"Applying database migrations (attempt {attempt}/{max_retries})...")
         result = subprocess.run(
-            [sys.executable, "manage.py", "migrate", "--noinput"],
+            [sys.executable, "manage.py", "migrate", "--noinput", "--run-syncdb"],
             cwd=str(BASE_DIR),
             text=True,
             capture_output=True,
