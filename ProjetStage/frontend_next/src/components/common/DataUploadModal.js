@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { FaFileUpload, FaTimes, FaCheckCircle, FaExclamationCircle } from "react-icons/fa";
-import api from "@/services/api";
+import { uploadData } from "@/services/eplApi";
 
 export default function DataUploadModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,15 +64,11 @@ export default function DataUploadModal() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await api.post("/data/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await uploadData(formData);
 
       setMessage({
         type: "success",
-        text: `✅ Fichier uploadé avec succès! ${response.data.rows} lignes importées.`,
+        text: `✅ Fichier uploadé avec succès! ${response.rows ?? response.count ?? 0} lignes importées.`,
       });
 
       // Fermer la modale après 2 secondes
