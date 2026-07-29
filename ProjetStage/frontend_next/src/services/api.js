@@ -9,11 +9,12 @@ const api = axios.create({
   timeout: 0,
   headers: {
     "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
   },
   withCredentials: false,
 });
 
-// ✅ CACHE GLOBAL (10 minutes)
+// CACHE GLOBAL (10 minutes)
 const cache = new Map();
 const CACHE_DURATION = 10 * 60 * 1000;
 
