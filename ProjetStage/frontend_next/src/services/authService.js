@@ -2,14 +2,18 @@
 import api from "./api"; 
 
 const TokenStorage = {
-  getAccess: () => localStorage.getItem("access"),
+  getAccess: () => localStorage.getItem("access") || localStorage.getItem("access_token"),
   getRefresh: () => localStorage.getItem("refresh"),
   setTokens: ({ access, refresh }) => {
-    if (access) localStorage.setItem("access", access);
+    if (access) {
+      localStorage.setItem("access", access);
+      localStorage.setItem("access_token", access);
+    }
     if (refresh) localStorage.setItem("refresh", refresh);
   },
   clear: () => {
     localStorage.removeItem("access");
+    localStorage.removeItem("access_token");
     localStorage.removeItem("refresh");
   },
 };

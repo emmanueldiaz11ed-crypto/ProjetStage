@@ -13,7 +13,7 @@ const eplApi = axios.create({
 
 function getAccessToken() {
   if (typeof window === "undefined") return null;
-  return window.localStorage?.getItem("access") || null;
+  return window.localStorage?.getItem("access") || window.localStorage?.getItem("access_token") || null;
 }
 
 function buildQueryString(params = {}) {
