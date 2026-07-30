@@ -70,7 +70,7 @@ export async function uploadData(fileOrForm, token) {
       })();
 
   const accessToken = token || getAccessToken();
-  const headers = { "Content-Type": undefined };
+  const headers = {};
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
