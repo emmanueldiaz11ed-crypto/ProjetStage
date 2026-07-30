@@ -6,9 +6,6 @@ const baseURL = baseRaw.endsWith("/api") ? baseRaw.slice(0, -4) : baseRaw;
 const eplApi = axios.create({
   baseURL: `${baseURL.replace(/\/$/, "")}/api`,
   withCredentials: false,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 function getAccessToken() {
