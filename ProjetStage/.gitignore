@@ -1,4 +1,15 @@
-# === DJANGO BACKEND (PostgreSQL) ===
+venv/
+env/
+*.pyc
+__pycache__/
+.env
+data/
+node_modules/
+.next/
+dist/
+*.sqlite3
+*.log
+secrets/# === DJANGO BACKEND (PostgreSQL) ===
 Backend_django/env/
 .env 
 Backend_django/__pycache__/

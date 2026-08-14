@@ -1,0 +1,17 @@
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/venv
+**/node_modules
+**/dist
+**/.next
+*.pyc
+*.pyo
+*.pyd
+*.db
+env/
+.env
+data/
+node_modules/
+npm-debug.log
+Dockerfile*

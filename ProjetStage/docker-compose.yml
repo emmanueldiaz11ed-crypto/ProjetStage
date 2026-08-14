@@ -1,0 +1,73 @@
+services:
+  django:
+    build:
+      context: ./Backend_django
+    container_name: projetstage_django
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./Backend_django:/app
+      - ./data/django/media:/app/media
+      - ./data/django/staticfiles:/app/staticfiles
+    networks:
+      - projetstage_network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  fastapi:
+    build:
+      context: ./Backend_fastapi
+    container_name: projetstage_fastapi
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./Backend_fastapi:/app:ro
+      - ./data/fastapi/reports:/app/reports
+      - ./data/fastapi/data:/app/data
+    networks:
+      - projetstage_network
+    restart: unless-stopped
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend_next
+    container_name: projetstage_frontend
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+    volumes:
+      - ./frontend_next:/app:ro
+    networks:
+      - projetstage_network
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:8001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  projetstage_network:
+    name: projetstage_network
