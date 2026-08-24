@@ -23,21 +23,28 @@ RUN npm ci
 
 # Copy sources and build
 COPY . .
+RUN mkdir -p /app/.next/cache/images
 RUN npm run build
 
 FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
+ENV PORT=8001
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+		curl \
+	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+RUN mkdir -p /app/.next/cache/images && chmod -R 777 /app/.next/cache
 
-EXPOSE 3000
+EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-	CMD curl -f http://localhost:3000/ || exit 1
+	CMD curl -f http://localhost:8001/ || exit 1
 
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "start", "--", "--port", "8001"]

@@ -1,12 +1,18 @@
-# Backend_django/Backend_django/urls.py
+ # Backend_django/Backend_django/urls.py
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
+def root_healthcheck(request):
+    return HttpResponse("OK", content_type="text/plain")
+
+
 urlpatterns = [
+    path('', root_healthcheck, name='root-healthcheck'),
     path('admin/', admin.site.urls),
     # Auth JWT
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

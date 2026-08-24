@@ -23,13 +23,18 @@ def read_parquet_or_csv(chemin: Path) -> pd.DataFrame:
     raise FileNotFoundError(f"Fichier introuvable : {chemin} ou {chemin_csv}")
 
 def validate_schema(df: pd.DataFrame) -> None:
-    colonnes_requises = {
-        "annee", "semestre", "carte", "anonymat", "ue",
-        "credit", "nom_prenoms", "sexe", "note", "cohorte", "filiere",
-    }
-    manquantes = colonnes_requises - set(df.columns)
+    """Accepte un fichier contenant au moins les colonnes essentielles.
+
+    Les autres colonnes sont optionnelles : si elles manquent ou sont vides,
+    les lignes incomplètes sont simplement ignorées dans les analyses.
+    """
+    colonnes_essentielles = {"note", "anonymat", "ue"}
+    manquantes = colonnes_essentielles - set(df.columns)
     if manquantes:
-        raise ValueError(f"Colonnes manquantes : {manquantes}")
+        raise ValueError(
+            "Colonnes essentielles manquantes : "
+            f"{manquantes}. Minimum requis : note, anonymat, ue."
+        )
 
 # Schéma minimal pour un DataFrame vide (permet le démarrage sans données)
 _COLONNES_VIDE = [
@@ -60,6 +65,15 @@ def load_data() -> pd.DataFrame:
         )
         return _df_vide()
 
+    # Normalisation minimale : ne pas exiger le schéma complet pour lancer le service.
+    for col in [
+        "annee", "semestre", "carte", "anonymat", "ue",
+        "credit", "nom_prenoms", "sexe", "note", "cohorte", "filiere",
+        "departement", "type_formation", "niveau",
+    ]:
+        if col not in df.columns:
+            df[col] = pd.NA
+
     try:
         validate_schema(df)
     except ValueError as e:
@@ -75,14 +89,25 @@ def load_data() -> pd.DataFrame:
             df["credit"] = df["credit"].str.replace(",", ".", regex=False)
         df["credit"] = pd.to_numeric(df["credit"], errors="coerce").fillna(1).astype(int)
 
-    # Enrichissement via le référentiel
-    df["departement"]    = df["filiere"].apply(lambda f: get_departement(str(f).upper()))
-    df["type_formation"] = df.apply(
-        lambda row: get_type_formation(str(row["filiere"]).upper(), pd.to_numeric(row["semestre"], errors="coerce")), axis=1
-    )
-    df["niveau"]         = df.apply(
-        lambda row: get_niveau(str(row["filiere"]).upper(), pd.to_numeric(row["semestre"], errors="coerce")), axis=1
-    )
+    # Enrichissement via le référentiel uniquement si les données utiles sont présentes.
+    if df["filiere"].notna().any():
+        df["departement"] = df["filiere"].map(lambda f: get_departement(str(f).upper()) if pd.notna(f) else None)
+        if "semestre" in df.columns:
+            df["type_formation"] = df.apply(
+                lambda row: get_type_formation(str(row["filiere"]).upper(), pd.to_numeric(row["semestre"], errors="coerce")) if pd.notna(row.get("filiere")) and pd.notna(row.get("semestre")) else None,
+                axis=1,
+            )
+            df["niveau"] = df.apply(
+                lambda row: get_niveau(str(row["filiere"]).upper(), pd.to_numeric(row["semestre"], errors="coerce")) if pd.notna(row.get("filiere")) and pd.notna(row.get("semestre")) else None,
+                axis=1,
+            )
+        else:
+            df["type_formation"] = None
+            df["niveau"] = None
+    else:
+        df["departement"] = None
+        df["type_formation"] = None
+        df["niveau"] = None
 
     for col in ["ue", "annee", "cohorte", "sexe", "filiere", "departement", "type_formation", "niveau"]:
         if col in df.columns:

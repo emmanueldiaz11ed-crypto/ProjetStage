@@ -81,11 +81,10 @@ def get_upload_history(limit: int = 50) -> List[Dict[str, Any]]:
     return events[:limit]
 logger = logging.getLogger(__name__)
 
-# Colonnes requises
-COLONNES_REQUISES = {
-    "annee", "semestre", "carte", "anonymat", "ue",
-    "credit", "nom_prenoms", "sexe", "note", "cohorte", "filiere",
-}
+# Colonnes essentielles pour accepter un fichier.
+# Les autres colonnes restent optionnelles et sont simplement ignorées
+# si elles manquent ou si les lignes sont incomplètes.
+COLONNES_REQUISES = {"note", "anonymat", "ue"}
 
 # Clé composite pour la fusion ajout/mise à jour
 MERGE_KEY = ["anonymat", "ue", "semestre", "annee"]
@@ -159,10 +158,19 @@ def validate_uploaded_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
     #    déjà en amont, mais la fonction doit rester autonome)
     df.columns = df.columns.str.strip().str.lower()
 
-    # 2. Vérification du schéma (colonnes requises) — lève ValueError si échec
+    # 2. Ajout des colonnes optionnelles manquantes pour éviter les erreurs
+    #    de KeyError tout en gardant les lignes incomplètes hors des analyses.
+    for col in [
+        "annee", "semestre", "carte", "anonymat", "ue",
+        "credit", "nom_prenoms", "sexe", "note", "cohorte", "filiere",
+    ]:
+        if col not in df.columns:
+            df[col] = pd.NA
+
+    # 3. Vérification du schéma minimal (colonnes essentielles) — lève ValueError si échec
     validate_schema(df)
 
-    # 3. Conversion et vérification des types
+    # 4. Conversion et vérification des types
     df["note"] = pd.to_numeric(df["note"], errors="coerce")
     nb_notes_invalides = int(df["note"].isna().sum())
     if nb_notes_invalides > 0:
@@ -223,8 +231,15 @@ def validate_uploaded_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
         df["anonymat"] = df["anonymat"].astype(str).str.strip()
         df.loc[df["anonymat"].isin(["", "nan"]), "anonymat"] = np.nan
 
-    # 4. Supprimer les lignes avec champs critiques manquants
-    df_clean = df.dropna(subset=["note", "semestre", "anonymat", "ue", "annee"])
+    # 5. Supprimer les lignes avec champs critiques manquants.
+    #    Les colonnes optionnelles sont tolérées, mais les lignes incomplètes
+    #    sur les champs essentiels ne sont pas affichées dans les analyses.
+    subset_critique = ["note", "anonymat", "ue"]
+    for col in ["semestre", "annee"]:
+        if col in df.columns:
+            subset_critique.append(col)
+
+    df_clean = df.dropna(subset=subset_critique)
     nb_supprimees = len(df) - len(df_clean)
     if nb_supprimees > 0:
         warnings.append(f"{nb_supprimees} ligne(s) supprimée(s) (champs critiques manquants ou aberrants)")
@@ -235,16 +250,33 @@ def validate_uploaded_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
 def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Enrichit le DataFrame avec les colonnes dérivées du référentiel."""
     df = df.copy()
-    df["filiere"] = df["filiere"].astype(str).str.upper()
-    df["departement"] = df["filiere"].apply(lambda f: get_departement(str(f).upper()))
-    df["type_formation"] = df.apply(
-        lambda row: get_type_formation(str(row["filiere"]).upper(), int(row["semestre"])),
-        axis=1
+    for col in ["filiere", "departement", "type_formation", "niveau", "nom_prenoms", "sexe"]:
+        if col not in df.columns:
+            df[col] = pd.NA
+
+    df["filiere"] = df["filiere"].map(
+        lambda v: str(v).upper() if pd.notna(v) and str(v).strip() else None
     )
-    df["niveau"] = df.apply(
-        lambda row: get_niveau(str(row["filiere"]).upper(), int(row["semestre"])),
-        axis=1
-    )
+
+    if df["filiere"].notna().any():
+        df["departement"] = df["filiere"].apply(lambda f: get_departement(str(f).upper()) if pd.notna(f) else None)
+        if "semestre" in df.columns:
+            df["type_formation"] = df.apply(
+                lambda row: get_type_formation(str(row["filiere"]).upper(), int(row["semestre"])) if pd.notna(row.get("filiere")) and pd.notna(row.get("semestre")) else None,
+                axis=1,
+            )
+            df["niveau"] = df.apply(
+                lambda row: get_niveau(str(row["filiere"]).upper(), int(row["semestre"])) if pd.notna(row.get("filiere")) and pd.notna(row.get("semestre")) else None,
+                axis=1,
+            )
+        else:
+            df["type_formation"] = None
+            df["niveau"] = None
+    else:
+        df["departement"] = None
+        df["type_formation"] = None
+        df["niveau"] = None
+
     return df
 
 
