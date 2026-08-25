@@ -18,6 +18,8 @@ services:
     restart: unless-stopped
     expose:
       - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
       interval: 30s
@@ -41,8 +43,10 @@ services:
     restart: unless-stopped
     expose:
       - "8001"
+    ports:
+      - "127.0.0.1:8001:8001"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/api/health')\""]
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -63,7 +67,7 @@ services:
     ports:
       - "127.0.0.1:3001:8001"
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8001/').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
