@@ -3,6 +3,11 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_EPL_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_EPL_API_URL=${NEXT_PUBLIC_EPL_API_URL}
+
 # Install system build deps and Rust toolchain so native addons (lightningcss) can build
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		curl \

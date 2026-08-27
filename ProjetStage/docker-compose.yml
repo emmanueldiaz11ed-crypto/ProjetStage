@@ -54,13 +54,14 @@ services:
   frontend:
     build:
       context: ./frontend_next
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_EPL_API_URL: ${NEXT_PUBLIC_EPL_API_URL}
     container_name: projetstage_frontend
     env_file:
       - .env
     environment:
       - HOST=0.0.0.0
-    volumes:
-      - ./frontend_next:/app:ro
     networks:
       - projetstage_network
     restart: unless-stopped

@@ -22,6 +22,7 @@ router.register(r'chefs-service-examen', views.ChefServiceExamViewSet)
 
 urlpatterns = [
     # Routes personnalisées EN PREMIER (très important)
+    path('me/', views.UtilisateurViewSet.as_view({'get': 'me', 'put': 'me'}), name='utilisateur-me'),
     path('etudiants/mes_ues_avec_notes/', views.etudiant_mes_ues_avec_notes, name='etudiant_mes_ues_avec_notes'),
     path('check-num-carte/', views.check_num_carte, name='check-num-carte'),
     # Import des utilisateurs depuis Excel
